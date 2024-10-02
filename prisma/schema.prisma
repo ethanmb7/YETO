@@ -1,0 +1,142 @@
+// Connexion
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Models
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  email     String    @unique
+  password  String
+  firstName String?
+  lastName  String?
+  bio       String?
+  location  String?
+  images    String[]
+  birthdate DateTime? @db.Date
+  gender    Gender    @default(UNKNOWN)
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  // Les préférences de l'utilisateur
+  distance   Int    @default(100)
+  ageMax     Int    @default(99)
+  ageMin     Int    @default(18)
+  prefGender Gender @default(UNKNOWN)
+
+  // Liste des chats de l'utilisateur
+  ChatID String[] @db.ObjectId
+  Chat   Chat[]   @relation(fields: [ChatID], references: [id])
+
+  // Liste des passions de l'utilisateur
+  PassionID String[]  @db.ObjectId
+  Passion   Passion[] @relation(fields: [PassionID], references: [id])
+
+  // Les messages envoyés
+  Message Message[]
+
+  // Les personnes que l'utilisateur aime
+  UserLikesID String[] @db.ObjectId
+  UserLikes   User[]   @relation("Likes", fields: [UserLikesID], references: [id])
+
+  // Les personnes qui aiment l'utilisateur
+  OtherUserLikesID String[] @db.ObjectId
+  OtherUserLikes   User[]   @relation("Likes", fields: [OtherUserLikesID], references: [id])
+
+  // Les personnes que l'utilisateur a dislike
+  UserDislikesID String[] @db.ObjectId
+  UserDislikes   User[]   @relation("Dislikes", fields: [UserDislikesID], references: [id])
+
+  // Les personnes qui aiment pas l'utilisateur
+  OtherUserDislikesID String[] @db.ObjectId
+  OtherUserDislikes   User[]   @relation("Dislikes", fields: [OtherUserDislikesID], references: [id])
+
+  MatchID String[] @db.ObjectId
+  Match   Match[]  @relation(fields: [MatchID], references: [id])
+
+  Notification Notification[]
+  
+  NotificationMatchedUser Notification[] @relation("matchedUser")
+}
+
+model Notification {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  type             NotificationType
+  createdAt        DateTime         @default(now())
+  hasBeenConsulted Boolean          @default(false)
+
+  UserID String @db.ObjectId
+  User   User   @relation(fields: [UserID], references: [id])
+
+  MatchedUserID String? @db.ObjectId
+  MatchedUser   User?   @relation("matchedUser",  fields: [MatchedUserID], references: [id])
+}
+
+model Match {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+
+  UserID String[] @db.ObjectId
+  User   User[]   @relation(fields: [UserID], references: [id])
+}
+
+model Passion {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Les utilisateurs qui on en commun cette passion
+  UserID String[] @db.ObjectId
+  User   User[]   @relation(fields: [UserID], references: [id])
+}
+
+model Chat {
+  id      String    @id @default(auto()) @map("_id") @db.ObjectId
+  Message Message[]
+
+  createdAt DateTime @default(now())
+
+  // Les utilisateurs qui ont un chat en commun
+  User   User[]   @relation(fields: [UserID], references: [id])
+  UserID String[] @db.ObjectId
+}
+
+model Message {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // L'utilisateur qui a envoyé le message
+  UserID String @db.ObjectId
+  User   User   @relation(fields: [UserID], references: [id])
+
+  // Le chat où ce trouve le message
+  ChatID String? @db.ObjectId
+  Chat   Chat?   @relation(fields: [ChatID], references: [id])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNKNOWN
+}
+
+enum NotificationType {
+  NEW_MATCH
+  NEW_LIKE
+  NEW_MESSAGE
+}
+
+enum Role {
+  USER
+  ADMIN
+}
